@@ -1,0 +1,166 @@
+name: Java CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # ensure, that we build it like our jenkins will do - once on linux
+    runs-on: ubuntu-latest
+    name: Build / Project
+    steps:
+      # Persist github actions
+      - name: Github Action Cache
+        uses: actions/cache@v2
+        id: github-cache
+        with:
+          path: ./.github
+          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+          
+      # Checkout Repository
+      - name: Checkout
+        uses: actions/checkout@master
+        with:
+          repository: aditosoftware/adito-designer
+          token: ${{ secrets.my_pat }}
+      
+      # Prepare Build
+      - name: Prepare Maven Build
+        uses: ./.github/workflows/prepare-action
+        with:
+          nexus_user: ${{ secrets.nexus_user }}
+          nexus_password: ${{ secrets.nexus_password }}
+
+      - name: Cleanup Maven Targets
+        run: mvn clean
+
+      - name: Cleanup ADITO Packages in Maven Repository
+        shell: bash
+        run: rm -rf ~/.m2/repository/de/adito
+
+      # Do Build
+      - name: Compile
+        run: mvn install -T 1C -DskipTests
+
+  # UnitTests auf allen Plattformen, parallel
+  unit_test:
+    runs-on: ${{ matrix.os }}
+    name: Quality / Unit Tests
+    needs:
+      - build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+          - os: ubuntu-latest
+          #- os: windows-latest #todo Windows clashes with paths
+    steps:
+      # GitHub Actions laden
+      - name: Github Action Cache
+        uses: actions/cache@v2
+        id: github-cache
+        with:
+          path: ./.github
+          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+
+      # Build vorbereiten
+      - name: Prepare Maven Build
+        uses: ./.github/workflows/prepare-action
+        with:
+          nexus_user: ${{ secrets.nexus_user }}
+          nexus_password: ${{ secrets.nexus_password }}
+
+      # UnitTests ausführen
+      - name: Unit Tests
+        working-directory: ./modules
+        run: mvn -T 1C surefire:test
+
+  # UnitTests auf allen Plattformen, parallel
+#  integration_test:
+#    runs-on: ${{ matrix.os }}
+#    name: Quality / Integration Tests
+#    needs:
+#      - build
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+          #- os: macos-latest
+#          - os: ubuntu-latest
+          #- os: windows-latest #todo Windows clashes with paths
+#    steps:
+      # GitHub Actions laden
+#      - name: Github Action Cache
+#        uses: actions/cache@v2
+#        id: github-cache
+#        with:
+#          path: ./.github
+#          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+
+      # Build vorbereiten
+#      - name: Prepare Maven Build
+#        uses: ./.github/workflows/prepare-action
+#        with:
+#          nexus_user: ${{ secrets.nexus_user }}
+#          nexus_password: ${{ secrets.nexus_password }}
+
+      # IntegrationTests ausführen
+#      - name: Integration Tests
+#        working-directory: ./modules
+#        run: mvn -T 1C -Padito.maven.integrationtests failsafe:integration-test failsafe:verify
+
+  # (Extended) IntegrationTests auf Linux
+  extended_integration_test:
+    runs-on: ubuntu-latest
+    name: Quality / Extended Integration Tests
+    needs:
+      - unit_test
+#      - integration_test
+    steps:
+      # GitHub Actions laden
+      - name: Github Action Cache
+        uses: actions/cache@v2
+        id: github-cache
+        with:
+          path: ./.github
+          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+
+      # Build vorbereiten
+      - name: Prepare Maven Build
+        uses: ./.github/workflows/prepare-action
+        with:
+          nexus_user: ${{ secrets.nexus_user }}
+          nexus_password: ${{ secrets.nexus_password }}
+
+      # Docker Login auf ADITO registry
+      - name: Login to ADITO K8s Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.k8s.adito.de
+          username: ${{ secrets.k8s_user }}
+          password: ${{ secrets.k8s_password }}
+
+      # Image Cache für Docker bereitstellen
+      - name: Docker Image Cache
+        id: image-cache
+        uses: actions/cache@v1
+        with:
+          path: ~/image-cache
+          key: image-cache-${{ runner.os }}
+
+      # Caches laden, wenn vorhanden
+      - name: Load Docker Images from Cache
+        if: steps.image-cache.outputs.cache-hit == 'true'
+        run: docker load -i ~/image-cache/images.tar
+
+      # IntegrationTests ausführen
+      - name: Integration Tests
+        working-directory: ./modules
+        run: mvn -T 1C -Padito.maven.integrationtests.extended failsafe:integration-test failsafe:verify
+
+      # Docker Images persistieren
+      - name: Persist Docker Images
+        run: mkdir -p ~/image-cache && docker save -o ~/image-cache/images.tar $(docker images -q)
