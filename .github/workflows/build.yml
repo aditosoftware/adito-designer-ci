@@ -1,11 +1,7 @@
 name: Java CI
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_ref:
-        description: 'Ref (Commit/Branch) to Build'
-        required: true
+  repository_dispatch:
 
 jobs:
   build:
@@ -38,7 +34,7 @@ jobs:
         with:
           repository: aditosoftware/adito-designer
           token: ${{ secrets.designer_checkout_token }}
-          ref: ${{ inputs.build_ref }}
+          ref: ${{ github.event.client_payload.ref }}
 
       - name: Cleanup Maven Targets
         run: mvn clean
