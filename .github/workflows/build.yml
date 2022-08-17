@@ -20,7 +20,18 @@ jobs:
         with:
           path: ./.github
           key: gh-build-${{ github.run_id }}-${{ github.run_number }}
-          
+
+      # Checkout Action Repository
+      - name: Checkout Action Repository
+        uses: actions/checkout@v3
+
+      # Prepare Build
+      - name: Prepare Maven Build
+        uses: ./.github/workflows/prepare-action
+        with:
+          nexus_user: ${{ secrets.nexus_user }}
+          nexus_password: ${{ secrets.nexus_password }}
+
       # Checkout Repository
       - name: Checkout
         uses: actions/checkout@v3
@@ -28,13 +39,6 @@ jobs:
           repository: aditosoftware/adito-designer
           token: ${{ secrets.designer_checkout_token }}
           ref: ${{ inputs.build_ref }}
-      
-      # Prepare Build
-      - name: Prepare Maven Build
-        uses: ./.github/workflows/prepare-action
-        with:
-          nexus_user: ${{ secrets.nexus_user }}
-          nexus_password: ${{ secrets.nexus_password }}
 
       - name: Cleanup Maven Targets
         run: mvn clean
