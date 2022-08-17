@@ -32,11 +32,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
+          path: /build
           repository: aditosoftware/adito-designer
           token: ${{ secrets.designer_checkout_token }}
           ref: ${{ github.event.client_payload.ref }}
 
       - name: Cleanup Maven Targets
+        working-directory: /build
         run: mvn clean
 
       - name: Cleanup ADITO Packages in Maven Repository
@@ -45,7 +47,12 @@ jobs:
 
       # Do Build
       - name: Compile
+        working-directory: /build
         run: mvn install -T 1C -DskipTests
+
+      # Directory wechseln, damit wir auf dem Originalen sind
+      - name: Switch Directory to Original
+        run: cd ..
 
   # UnitTests auf allen Plattformen, parallel
   unit_test:
@@ -81,39 +88,39 @@ jobs:
         working-directory: ./modules
         run: mvn -T 1C surefire:test
 
-  # UnitTests auf allen Plattformen, parallel
-#  integration_test:
-#    runs-on: ${{ matrix.os }}
-#    name: Quality / Integration Tests
-#    needs:
-#      - build
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        include:
+          # UnitTests auf allen Plattformen, parallel
+          #  integration_test:
+          #    runs-on: ${{ matrix.os }}
+          #    name: Quality / Integration Tests
+          #    needs:
+          #      - build
+          #    strategy:
+          #      fail-fast: false
+          #      matrix:
+          #        include:
           #- os: macos-latest
-#          - os: ubuntu-latest
-          #- os: windows-latest #todo Windows clashes with paths
-#    steps:
+          #          - os: ubuntu-latest
+        #- os: windows-latest #todo Windows clashes with paths
+      #    steps:
       # GitHub Actions laden
-#      - name: Github Action Cache
-#        uses: actions/cache@v2
-#        id: github-cache
-#        with:
-#          path: ./.github
-#          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+      #      - name: Github Action Cache
+      #        uses: actions/cache@v2
+      #        id: github-cache
+      #        with:
+      #          path: ./.github
+      #          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
       # Build vorbereiten
-#      - name: Prepare Maven Build
-#        uses: ./.github/workflows/prepare-action
-#        with:
-#          nexus_user: ${{ secrets.nexus_user }}
-#          nexus_password: ${{ secrets.nexus_password }}
+      #      - name: Prepare Maven Build
+      #        uses: ./.github/workflows/prepare-action
+      #        with:
+      #          nexus_user: ${{ secrets.nexus_user }}
+      #          nexus_password: ${{ secrets.nexus_password }}
 
       # IntegrationTests ausführen
-#      - name: Integration Tests
-#        working-directory: ./modules
-#        run: mvn -T 1C -Padito.maven.integrationtests failsafe:integration-test failsafe:verify
+  #      - name: Integration Tests
+  #        working-directory: ./modules
+  #        run: mvn -T 1C -Padito.maven.integrationtests failsafe:integration-test failsafe:verify
 
   # (Extended) IntegrationTests auf Linux
   extended_integration_test:
@@ -121,7 +128,7 @@ jobs:
     name: Quality / Extended Integration Tests
     needs:
       - unit_test
-#      - integration_test
+    #      - integration_test
     steps:
       # GitHub Actions laden
       - name: Github Action Cache
