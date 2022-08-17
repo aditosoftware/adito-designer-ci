@@ -6,7 +6,6 @@ on:
       build_ref:
         description: 'Ref (Commit/Branch) to Build'
         required: true
-        default: 'master'
 
 jobs:
   build:
@@ -28,7 +27,7 @@ jobs:
         with:
           repository: aditosoftware/adito-designer
           token: ${{ secrets.designer_checkout_token }}
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.build_ref }}
       
       # Prepare Build
       - name: Prepare Maven Build
