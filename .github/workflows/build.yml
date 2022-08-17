@@ -1,9 +1,12 @@
 name: Java CI
 
 on:
-  push:
-  pull_request:
   workflow_dispatch:
+    inputs:
+      build_ref:
+        description: 'Ref (Commit/Branch) to Build'
+        required: true
+        default: 'master'
 
 jobs:
   build:
@@ -21,10 +24,11 @@ jobs:
           
       # Checkout Repository
       - name: Checkout
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
         with:
           repository: aditosoftware/adito-designer
           token: ${{ secrets.my_pat }}
+          ref: ${{ inputs.ref }}
       
       # Prepare Build
       - name: Prepare Maven Build
