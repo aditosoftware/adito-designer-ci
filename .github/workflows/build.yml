@@ -130,7 +130,6 @@ jobs:
     name: Quality / Extended Integration Tests
     needs:
       - unit_test
-      - integration_test
     steps:
       # Persist github actions
       - name: Github Action Cache
