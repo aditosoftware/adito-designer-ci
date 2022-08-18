@@ -17,44 +17,30 @@ jobs:
           path: ./.github
           key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
-      # Checkout Action Repository
-      - name: Checkout Action Repository
-        uses: actions/checkout@v3
-
-      # Prepare Build
-      - name: Prepare Maven Build
-        uses: ./.github/workflows/prepare-action
-        with:
-          nexus_user: ${{ secrets.nexus_user }}
-          nexus_password: ${{ secrets.nexus_password }}
-
       # Checkout Repository
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          path: /build
           repository: aditosoftware/adito-designer
           token: ${{ secrets.designer_checkout_token }}
           ref: ${{ github.event.client_payload.ref }}
 
-      - name: Cleanup Maven Targets
-        working-directory: /build
-        run: mvn clean
+      # Check if action exists
+      - name: Check Action Exists
+        id: check_action_exists
+        uses: andstor/file-existence-action@v1
+        with:
+          files: ".github/workflows/build-action"
 
-      - name: Cleanup ADITO Packages in Maven Repository
-        shell: bash
-        run: rm -rf ~/.m2/repository/de/adito
+      # Execute Action
+      - name: Build
+        uses: ./.github/workflows/build-action
+        if: steps.check_action_exists.outputs.files_exists == 'true'
+        with:
+          nexus_user: ${{ secrets.nexus_user }}
+          nexus_password: ${{ secrets.nexus_password }}
 
-      # Do Build
-      - name: Compile
-        working-directory: /build
-        run: mvn install -T 1C -DskipTests
-
-      # Directory wechseln, damit wir auf dem Originalen sind
-      - name: Switch Directory to Original
-        run: cd ..
-
-  # UnitTests auf allen Plattformen, parallel
+  # UnitTests on all plattforms in parallel
   unit_test:
     runs-on: ${{ matrix.os }}
     name: Quality / Unit Tests
@@ -66,9 +52,8 @@ jobs:
         include:
           - os: macos-latest
           - os: ubuntu-latest
-          #- os: windows-latest #todo Windows clashes with paths
     steps:
-      # GitHub Actions laden
+      # Persist github actions
       - name: Github Action Cache
         uses: actions/cache@v2
         id: github-cache
@@ -76,61 +61,66 @@ jobs:
           path: ./.github
           key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
-      # Build vorbereiten
-      - name: Prepare Maven Build
-        uses: ./.github/workflows/prepare-action
+      # Check if action exists
+      - name: Check Action Exists
+        id: check_action_exists
+        uses: andstor/file-existence-action@v1
+        with:
+          files: ".github/workflows/unittest-action"
+
+      # Execute Action
+      - name: Unit Tests
+        if: steps.check_action_exists.outputs.files_exists == 'true'
+        uses: ./.github/workflows/unittest-action
         with:
           nexus_user: ${{ secrets.nexus_user }}
           nexus_password: ${{ secrets.nexus_password }}
 
-      # UnitTests ausführen
-      - name: Unit Tests
-        working-directory: ./modules
-        run: mvn -T 1C surefire:test
+  # IntegrationTests on all plattforms in parallel
+  integration_test:
+    runs-on: ${{ matrix.os }}
+    name: Quality / Integration Tests
+    needs:
+      - unit_test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+    steps:
+      # Persist github actions
+      - name: Github Action Cache
+        uses: actions/cache@v2
+        id: github-cache
+        with:
+          path: ./.github
+          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
-          # UnitTests auf allen Plattformen, parallel
-          #  integration_test:
-          #    runs-on: ${{ matrix.os }}
-          #    name: Quality / Integration Tests
-          #    needs:
-          #      - build
-          #    strategy:
-          #      fail-fast: false
-          #      matrix:
-          #        include:
-          #- os: macos-latest
-          #          - os: ubuntu-latest
-        #- os: windows-latest #todo Windows clashes with paths
-      #    steps:
-      # GitHub Actions laden
-      #      - name: Github Action Cache
-      #        uses: actions/cache@v2
-      #        id: github-cache
-      #        with:
-      #          path: ./.github
-      #          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+      # Check if action exists
+      - name: Check Action Exists
+        id: check_action_exists
+        uses: andstor/file-existence-action@v1
+        with:
+          files: ".github/workflows/integrationtest-action"
 
-      # Build vorbereiten
-      #      - name: Prepare Maven Build
-      #        uses: ./.github/workflows/prepare-action
-      #        with:
-      #          nexus_user: ${{ secrets.nexus_user }}
-      #          nexus_password: ${{ secrets.nexus_password }}
+      # Execute Action
+      - name: Extended Integration Tests
+        if: steps.check_action_exists.outputs.files_exists == 'true'
+        uses: ./.github/workflows/integrationtest-action
+        with:
+          extended: 'false'
+          nexus_user: ${{ secrets.nexus_user }}
+          nexus_password: ${{ secrets.nexus_password }}
 
-      # IntegrationTests ausführen
-  #      - name: Integration Tests
-  #        working-directory: ./modules
-  #        run: mvn -T 1C -Padito.maven.integrationtests failsafe:integration-test failsafe:verify
-
-  # (Extended) IntegrationTests auf Linux
+  # (Extended) IntegrationTests on Linux
   extended_integration_test:
     runs-on: ubuntu-latest
     name: Quality / Extended Integration Tests
     needs:
       - unit_test
-    #      - integration_test
+      - integration_test
     steps:
-      # GitHub Actions laden
+      # Persist github actions
       - name: Github Action Cache
         uses: actions/cache@v2
         id: github-cache
@@ -138,39 +128,20 @@ jobs:
           path: ./.github
           key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
-      # Build vorbereiten
-      - name: Prepare Maven Build
-        uses: ./.github/workflows/prepare-action
+      # Check if action exists
+      - name: Check Action Exists
+        id: check_action_exists
+        uses: andstor/file-existence-action@v1
         with:
+          files: ".github/workflows/integrationtest-action"
+
+      # Execute Action
+      - name: Extended Integration Tests
+        if: steps.check_action_exists.outputs.files_exists == 'true'
+        uses: ./.github/workflows/integrationtest-action
+        with:
+          extended: 'true'
           nexus_user: ${{ secrets.nexus_user }}
           nexus_password: ${{ secrets.nexus_password }}
-
-      # Docker Login auf ADITO registry
-      - name: Login to ADITO K8s Registry
-        uses: docker/login-action@v2
-        with:
-          registry: registry.k8s.adito.de
-          username: ${{ secrets.k8s_user }}
-          password: ${{ secrets.k8s_password }}
-
-      # Image Cache für Docker bereitstellen
-      - name: Docker Image Cache
-        id: image-cache
-        uses: actions/cache@v1
-        with:
-          path: ~/image-cache
-          key: image-cache-${{ runner.os }}
-
-      # Caches laden, wenn vorhanden
-      - name: Load Docker Images from Cache
-        if: steps.image-cache.outputs.cache-hit == 'true'
-        run: docker load -i ~/image-cache/images.tar
-
-      # IntegrationTests ausführen
-      - name: Integration Tests
-        working-directory: ./modules
-        run: mvn -T 1C -Padito.maven.integrationtests.extended failsafe:integration-test failsafe:verify
-
-      # Docker Images persistieren
-      - name: Persist Docker Images
-        run: mkdir -p ~/image-cache && docker save -o ~/image-cache/images.tar $(docker images -q)
+          k8s_user: ${{ secrets.k8s_user }}
+          k8s_password: ${{ secrets.k8s_password }}
