@@ -163,6 +163,8 @@ jobs:
     name: Results / Publish on Commit
     if: always()
     needs:
+      - build
+      - unit_test
       - integration_test
       - extended_integration_test
     steps:
