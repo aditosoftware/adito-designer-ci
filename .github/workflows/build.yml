@@ -15,8 +15,8 @@ jobs:
         with:
           repository: adito-designer
           authToken: ${{ secrets.designer_checkout_token }}
-          context: 'ci'
-          description: 'build started'
+          context: 'Continuous Integration'
+          description: 'Build Started'
           state: 'pending'
           sha: ${{ github.event.client_payload.ref }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -173,8 +173,8 @@ jobs:
         with:
           repository: adito-designer
           authToken: ${{ secrets.designer_checkout_token }}
-          context: 'ci'
-          description: 'build succeeded'
+          context: 'Continuous Integration'
+          description: 'Build Finished Successfully'
           state: 'success'
           sha: ${{ github.event.client_payload.ref }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -186,8 +186,8 @@ jobs:
         with:
           repository: adito-designer
           authToken: ${{ secrets.designer_checkout_token }}
-          context: 'ci'
-          description: 'build failed'
+          context: 'Continuous Integration'
+          description: 'Build Failed'
           state: 'failure'
           sha: ${{ github.event.client_payload.ref }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
