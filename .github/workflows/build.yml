@@ -198,12 +198,32 @@ jobs:
     name: Results / Publish on Teams
     if: ${{ !success() }}
     needs:
+      - build
+      - unit_test
       - integration_test
       - extended_integration_test
     steps:
       # Checkout our own repository
       - name: Checkout
         uses: actions/checkout@v3
+
+      # Determine fail information
+      - name: Determine Failure Information
+        shell: bash
+        run: |
+          if [[ ${{needs.build.result}} != 'success' ]]; then
+              echo 'FAIL_REASON="Build Failed"' >> $GITHUB_ENV
+              echo 'FAIL_COLOR=dc3545' >> $GITHUB_ENV
+          elif [[ ${{needs.unit_test.result}} != 'success' ]]; then
+              echo 'FAIL_REASON="UnitTests Failed"' >> $GITHUB_ENV
+              echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
+          elif [[ ${{needs.integration_test.result}} != 'success' ]]; then
+              echo 'FAIL_REASON="IntegrationTests Failed"' >> $GITHUB_ENV
+              echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
+          elif [[ ${{needs.extended_integration_test.result}} != 'success' ]]; then
+              echo 'FAIL_REASON="Extended IntegrationTests Failed"' >> $GITHUB_ENV
+              echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
+          fi
 
       # Send Teams message on failure
       - name: Send Teams Message on Failure
@@ -213,6 +233,6 @@ jobs:
           github-repository: aditosoftware/adito-designer
           github-sha: ${{ github.event.client_payload.ref }}
           ms-teams-webhook-uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          notification-summary: Continuous Integration Build Failed
-          notification-color: dc3545
+          notification-summary: Continuous Integration - ${{ env.FAIL_REASON }}
+          notification-color: ${{ env.FAIL_COLOR }}
           timezone: Europe/Berlin
