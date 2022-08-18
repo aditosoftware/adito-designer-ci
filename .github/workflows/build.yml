@@ -158,9 +158,9 @@ jobs:
           k8s_password: ${{ secrets.k8s_password }}
 
   # Publish results on original commit
-  publish_results:
+  publish_results_on_commit:
     runs-on: ubuntu-latest
-    name: Results / Publish
+    name: Results / Publish on Commit
     if: always()
     needs:
       - integration_test
@@ -191,3 +191,28 @@ jobs:
           state: 'failure'
           sha: ${{ github.event.client_payload.ref }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  # Publish results in Teams channel
+  publish_results_teams:
+    runs-on: ubuntu-latest
+    name: Results / Publish on Teams
+    if: ${{ !success() }}
+    needs:
+      - integration_test
+      - extended_integration_test
+    steps:
+      # Checkout our own repository
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # Send Teams message on failure
+      - name: Send Teams Message on Failure
+        uses: ./.github/workflows/ms-teams-notification
+        with:
+          github-token: ${{ secrets.DESIGNER_CHECKOUT_TOKEN }}
+          github-repository: aditosoftware/adito-designer
+          github-sha: ${{ github.event.client_payload.ref }}
+          ms-teams-webhook-uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          notification-summary: Continuous Integration Build Failed
+          notification-color: dc3545
+          timezone: Europe/Berlin
