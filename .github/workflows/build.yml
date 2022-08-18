@@ -9,6 +9,18 @@ jobs:
     runs-on: ubuntu-latest
     name: Build / Project
     steps:
+      # Update commit status
+      - name: Update Commit Status
+        uses: Sibz/github-status-action@v1
+        with:
+          repository: adito-designer
+          authToken: ${{ secrets.designer_checkout_token }}
+          context: 'ci'
+          description: 'build started'
+          state: 'pending'
+          sha: ${{ github.event.client_payload.ref }}
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
       # Persist github actions
       - name: Github Action Cache
         uses: actions/cache@v2
@@ -145,3 +157,38 @@ jobs:
           nexus_password: ${{ secrets.nexus_password }}
           k8s_user: ${{ secrets.k8s_user }}
           k8s_password: ${{ secrets.k8s_password }}
+
+  # Publish results on original commit
+  publish_results:
+    runs-on: ubuntu-latest
+    name: Results / Publish
+    if: always()
+    needs:
+      - integration_test
+      - extended_integration_test
+    steps:
+      # Update commit status
+      - name: Update Commit Status
+        uses: Sibz/github-status-action@v1
+        if: needs.integration_test.result == 'success' && needs.extended_integration_test.result == 'success'
+        with:
+          repository: adito-designer
+          authToken: ${{ secrets.designer_checkout_token }}
+          context: 'ci'
+          description: 'build succeeded'
+          state: 'success'
+          sha: ${{ github.event.client_payload.ref }}
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      # Update commit status
+      - name: Update Commit Status on Failure
+        uses: Sibz/github-status-action@v1
+        if: needs.integration_test.result != 'success' || needs.extended_integration_test.result != 'success'
+        with:
+          repository: adito-designer
+          authToken: ${{ secrets.designer_checkout_token }}
+          context: 'ci'
+          description: 'build failed'
+          state: 'failure'
+          sha: ${{ github.event.client_payload.ref }}
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
