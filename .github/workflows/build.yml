@@ -2,6 +2,15 @@ name: Java CI
 
 on:
   repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      silent:
+        required: false
+        description: 'True, if a failure should not lead to a teams message'
+        default: 'false'
+      sha:
+        required: true
+        description: 'SHA of the commit to build'
 
 jobs:
   build:
@@ -18,7 +27,7 @@ jobs:
           context: 'Continuous Integration'
           description: 'Build Started'
           state: 'pending'
-          sha: ${{ github.event.client_payload.ref }}
+          sha: ${{ github.event.client_payload.ref || inputs.sha }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       # Persist github actions
@@ -35,7 +44,7 @@ jobs:
         with:
           repository: aditosoftware/adito-designer
           token: ${{ secrets.designer_checkout_token }}
-          ref: ${{ github.event.client_payload.ref }}
+          ref: ${{ github.event.client_payload.ref || inputs.sha }}
 
       # Check if action exists
       - name: Check Action Exists
@@ -178,7 +187,7 @@ jobs:
           context: 'Continuous Integration'
           description: 'Build Finished Successfully'
           state: 'success'
-          sha: ${{ github.event.client_payload.ref }}
+          sha: ${{ github.event.client_payload.ref || inputs.sha }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       # Update commit status
@@ -191,14 +200,14 @@ jobs:
           context: 'Continuous Integration'
           description: 'Build Failed'
           state: 'failure'
-          sha: ${{ github.event.client_payload.ref }}
+          sha: ${{ github.event.client_payload.ref || inputs.sha }}
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   # Publish results in Teams channel
   publish_results_teams:
     runs-on: ubuntu-latest
     name: Results / Publish on Teams
-    if: ${{ !success() }}
+    if: ${{ !success() && inputs.silent != 'true' }}
     needs:
       - build
       - unit_test
@@ -233,7 +242,7 @@ jobs:
         with:
           github-token: ${{ secrets.DESIGNER_CHECKOUT_TOKEN }}
           github-repository: aditosoftware/adito-designer
-          github-sha: ${{ github.event.client_payload.ref }}
+          github-sha: ${{ github.event.client_payload.ref || inputs.sha }}
           ms-teams-webhook-uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
           notification-summary: Continuous Integration - ${{ env.FAIL_REASON }}
           notification-color: ${{ env.FAIL_COLOR }}
