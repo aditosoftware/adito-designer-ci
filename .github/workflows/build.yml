@@ -75,16 +75,6 @@ jobs:
           - os: ubuntu-latest
           - os: windows-latest
     steps:
-      # Enable zstd by adding GNU tar to PATH
-      # Expected behaviour: Cache hit on windows / unit tests not getting skipped
-      # actions/cache@v3.1.0-beta implementing this by default, currently still workaround:
-      - if: ${{ runner.os == 'Windows' }}
-        name: Use GNU tar
-        shell: cmd
-        run: |
-          echo "Adding GNU tar to PATH"
-          echo C:\Program Files\Git\usr\bin>>"%GITHUB_PATH%"
-    
       # Persist github actions
       - name: Github Action Cache
         uses: actions/cache@v3
