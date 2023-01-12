@@ -35,6 +35,7 @@ jobs:
         uses: actions/cache@v3
         id: github-cache
         with:
+          enableCrossOsArchive: true
           path: ./.github
           key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
@@ -80,6 +81,7 @@ jobs:
         uses: actions/cache@v3
         id: github-cache
         with:
+          enableCrossOsArchive: true
           path: ./.github
           key: gh-build-${{ github.run_id }}-${{ github.run_number }}
 
