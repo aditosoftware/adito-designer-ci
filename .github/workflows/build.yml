@@ -259,6 +259,7 @@ jobs:
     needs:
       - build
       - unit_test
+      - ui_test
       - integration_test
       - extended_integration_test
     steps:
@@ -275,6 +276,9 @@ jobs:
               echo 'FAIL_COLOR=dc3545' >> $GITHUB_ENV
           elif [[ ${{needs.unit_test.result}} != 'success' ]]; then
               echo 'FAIL_REASON="UnitTests Failed"' >> $GITHUB_ENV
+              echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
+          elif [[ ${{needs.ui_test.result}} != 'success' ]]; then
+              echo 'FAIL_REASON="UITests Failed"' >> $GITHUB_ENV
               echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
           elif [[ ${{needs.integration_test.result}} != 'success' ]]; then
               echo 'FAIL_REASON="IntegrationTests Failed"' >> $GITHUB_ENV
