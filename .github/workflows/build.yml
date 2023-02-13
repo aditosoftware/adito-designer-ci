@@ -110,7 +110,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-          - os: windows-latest
     steps:
       # Persist github actions
       - name: Github Action Cache
