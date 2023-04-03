@@ -211,7 +211,7 @@ jobs:
   publish_results_teams:
     runs-on: ubuntu-latest
     name: Results / Publish on Teams
-    if: ${{ !success() && inputs.silent != 'true' }}
+    if: ${{ !success() && !cancelled() && inputs.silent != 'true' }}
     needs:
       - build
       - unit_test
