@@ -104,7 +104,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Quality / Integration Tests
     needs:
-      - unit_test
+      - build
     strategy:
       fail-fast: false
       matrix:
@@ -141,7 +141,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Quality / Extended Integration Tests
     needs:
-      - unit_test
+      - build
     steps:
       # Persist github actions
       - name: Github Action Cache
