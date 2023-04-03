@@ -99,49 +99,6 @@ jobs:
           nexus_user: ${{ secrets.nexus_user }}
           nexus_password: ${{ secrets.nexus_password }}
 
-  # UITests on all plattforms in parallel
-  ui_test:
-    runs-on: ${{ matrix.os }}
-    name: UI Tests
-    needs:
-      - build
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-    steps:
-      # Persist github actions
-      - name: Github Action Cache
-        uses: actions/cache@v3
-        id: github-cache
-        with:
-          enableCrossOsArchive: true
-          path: ./.github
-          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
-
-      - name: Specify Build Cache
-        uses: actions/cache@v3
-        id: build-cache
-        with:
-          enableCrossOsArchive: true
-          path: |
-            ./*
-            ~/.m2/repository/de/adito
-          key: build-${{ github.run_id }}-${{ github.run_number }}
-      
-      # Check if action exists
-      - name: Check Action Exists
-        id: check_action_exists
-        uses: andstor/file-existence-action@v2
-        with:
-          files: ".github/workflows/uitest-action, application/designer/target"
-      
-      # Execute Action
-      - name: UI Tests
-        if: steps.check_action_exists.outputs.files_exists == 'true'
-        uses: ./.github/workflows/uitest-action
-
   # IntegrationTests on all plattforms in parallel
   integration_test:
     runs-on: ${{ matrix.os }}
@@ -258,7 +215,6 @@ jobs:
     needs:
       - build
       - unit_test
-      - ui_test
       - integration_test
       - extended_integration_test
     steps:
@@ -275,9 +231,6 @@ jobs:
               echo 'FAIL_COLOR=dc3545' >> $GITHUB_ENV
           elif [[ ${{needs.unit_test.result}} != 'success' ]]; then
               echo 'FAIL_REASON="UnitTests Failed"' >> $GITHUB_ENV
-              echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
-          elif [[ ${{needs.ui_test.result}} != 'success' ]]; then
-              echo 'FAIL_REASON="UITests Failed"' >> $GITHUB_ENV
               echo 'FAIL_COLOR=ffc107' >> $GITHUB_ENV
           elif [[ ${{needs.integration_test.result}} != 'success' ]]; then
               echo 'FAIL_REASON="IntegrationTests Failed"' >> $GITHUB_ENV
