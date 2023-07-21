@@ -252,3 +252,38 @@ jobs:
           notification-summary: Continuous Integration - ${{ env.FAIL_REASON }}
           notification-color: ${{ env.FAIL_COLOR }}
           timezone: Europe/Berlin
+
+  # Execute action to cleanup needed stuff
+  cleanup:
+    runs-on: ubuntu-latest
+    name: Build / Cleanup
+    if: always()
+    needs:
+      - publish_results_on_commit
+      - publish_results_teams
+    steps:
+      # Persist github actions
+      - name: Github Action Cache
+        uses: actions/cache@v3
+        id: github-cache
+        with:
+          enableCrossOsArchive: true
+          path: ./.github
+          key: gh-build-${{ github.run_id }}-${{ github.run_number }}
+
+      # Check if action exists
+      - name: Check Action Exists
+        id: check_action_exists
+        uses: andstor/file-existence-action@v2
+        with:
+          files: ".github/workflows/cleanup-action"
+
+      # Execute Action
+      - name: Extended Integration Tests
+        if: steps.check_action_exists.outputs.files_exists == 'true'
+        uses: ./.github/workflows/cleanup-action
+
+      # Cleanup Github Action Cache
+      - name: Clean Github Action Cache
+        shell: bash
+        run: rm -rf ./.github
